@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CaliNote 🖋️
 
 **CaliNote** is a high-performance, locally-encrypted notes application designed with a macOS-inspired aesthetic. It combines the speed and security of a **Rust** backend with the flexibility of a **Python (Tkinter)** GUI, ensuring your thoughts remain private, secure, and accessible only to you.
@@ -79,3 +80,7 @@ make clean
 
 ---
 *CaliNote: Your thoughts, secured.*
+=======
+# Calinote
+So this is a notes app with full privacy, so when you open it make sure to remember the password,
+>>>>>>> 4ea45f72d6a9c25c5a83cc8c073cb7a2c6944616
