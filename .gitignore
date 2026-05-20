@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Rust
+backend/target/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# CaliNote specifics
+notes/*.cali
+notes/*.ghost
