@@ -1,133 +1,136 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from theme import *
 from bridge import list_notes, delete_note
 import os
 
-class NotesListScreen(tk.Frame):
+class NotesListScreen(ctk.CTkFrame):
     def __init__(self, parent, app):
-        super().__init__(parent, bg=BG_DEEP)
+        super().__init__(parent, fg_color=BG_DEEP)
         self.app = app
         
         # Sidebar
-        sidebar = tk.Frame(self, bg=BG_SIDEBAR, width=SIDEBAR_W)
-        sidebar.pack(side="left", fill="y")
-        sidebar.pack_propagate(False)
+        self.sidebar = ctk.CTkFrame(self, fg_color=BG_SIDEBAR, width=SIDEBAR_W, corner_radius=0)
+        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.pack_propagate(False)
         
-        tk.Label(
-            sidebar, text="CaliNote", font=FONT_TITLE,
-            fg=ACCENT, bg=BG_SIDEBAR, pady=20
-        ).pack()
+        ctk.CTkLabel(
+            self.sidebar, text="CaliNote", font=FONT_TITLE,
+            text_color=ACCENT
+        ).pack(pady=40)
 
-        # Folders/Lists section
-        folder_item = tk.Frame(sidebar, bg=BG_HOVER, padx=20, pady=8)
-        folder_item.pack(fill="x", pady=(20, 0))
-        tk.Label(folder_item, text="All CaliNotes", font=FONT_BODY, fg=FG_BRIGHT, bg=BG_HOVER).pack(side="left")
+        # Nav items
+        self.nav_btn = ctk.CTkButton(
+            self.sidebar, text="  All Notes", font=FONT_BUTTON,
+            fg_color=BG_HOVER, text_color=FG_BRIGHT,
+            anchor="w", height=45, corner_radius=8,
+            command=self.refresh
+        )
+        self.nav_btn.pack(fill="x", padx=15, pady=5)
+
+        self.settings_btn = ctk.CTkButton(
+            self.sidebar, text="  Settings", font=FONT_BUTTON,
+            fg_color="transparent", text_color=FG_DIM,
+            hover_color=BG_HOVER, anchor="w", height=45, corner_radius=8,
+            command=self.app.show_settings
+        )
+        self.settings_btn.pack(fill="x", padx=15, pady=5)
 
         # Bottom sidebar action
-        new_btn = tk.Button(
-            sidebar, text="+ New Note", font=FONT_BUTTON,
-            bg=BG_SIDEBAR, fg=ACCENT, relief="flat",
-            activebackground=BG_HOVER, activeforeground=ACCENT,
-            command=self.app.create_new_note, cursor="hand2",
-            bd=0, highlightthickness=0
+        self.new_btn = ctk.CTkButton(
+            self.sidebar, text="+  New Note", font=FONT_BUTTON,
+            fg_color=ACCENT, text_color=BG_DEEP,
+            hover_color="#e5c100", corner_radius=RADIUS,
+            height=50, command=self.app.create_new_note
         )
-        new_btn.pack(side="bottom", fill="x", pady=20)
+        self.new_btn.pack(side="bottom", fill="x", padx=20, pady=30)
         
-        # Main area with header
-        main_container = tk.Frame(self, bg=BG_DEEP)
-        main_container.pack(side="right", expand=True, fill="both")
+        # Main area
+        self.main_container = ctk.CTkFrame(self, fg_color=BG_DEEP, corner_radius=0)
+        self.main_container.pack(side="right", expand=True, fill="both")
         
-        header = tk.Frame(main_container, bg=BG_DEEP, height=60)
-        header.pack(fill="x", padx=PAD, pady=PAD)
+        # Header
+        header = ctk.CTkFrame(self.main_container, fg_color="transparent", height=80)
+        header.pack(fill="x", padx=PAD, pady=(PAD, 0))
         header.pack_propagate(False)
         
-        tk.Label(header, text="All CaliNotes", font=FONT_TITLE, fg=FG_BRIGHT, bg=BG_DEEP).pack(side="left")
+        ctk.CTkLabel(header, text="All CaliNotes", font=FONT_SUBTITLE, text_color=FG_BRIGHT).pack(side="left")
         
-        # Search bar placeholder style
-        search_frame = tk.Frame(header, bg=BG_CARD, padx=10, pady=5)
-        search_frame.pack(side="right")
-        tk.Label(search_frame, text="🔍 Search", font=FONT_SMALL, fg=FG_DIM, bg=BG_CARD).pack()
-
-        # Grid area for notes
-        self.canvas = tk.Canvas(main_container, bg=BG_DEEP, highlightthickness=0)
-        self.scrollbar = tk.Scrollbar(main_container, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas, bg=BG_DEEP)
-
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        # Search bar
+        self.search_entry = ctk.CTkEntry(
+            header, placeholder_text="Search notes...",
+            font=FONT_SMALL, fg_color=BG_CARD, border_color=BORDER,
+            width=250, height=35, corner_radius=10
         )
+        self.search_entry.pack(side="right", pady=20)
 
-        self.canvas_frame = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        # Grid area for notes using CTKScrollableFrame
+        self.scrollable_frame = ctk.CTkScrollableFrame(
+            self.main_container, fg_color="transparent",
+            label_text=None
+        )
+        self.scrollable_frame.pack(expand=True, fill="both", padx=PAD, pady=PAD)
         
-        # Ensure the scrollable frame is at least as wide as the canvas
-        self.canvas.bind("<Configure>", self._on_canvas_configure)
-
-        self.canvas.pack(side="left", expand=True, fill="both", padx=PAD)
-        self.scrollbar.pack(side="right", fill="y")
+        # Configure grid columns
+        self.scrollable_frame.grid_columnconfigure((0, 1, 2), weight=1)
         
         self.refresh()
-
-    def _on_canvas_configure(self, event):
-        self.canvas.itemconfig(self.canvas_frame, width=event.width)
 
     def refresh(self):
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
             
         res = list_notes(self.app.notes_dir)
-        print(f"DEBUG: list_notes result: {res}")
         if not res.get("ok"):
-
-            tk.Label(self.scrollable_frame, text=f"Error: {res.get('error')}", fg=DANGER, bg=BG_DEEP).pack()
+            ctk.CTkLabel(self.scrollable_frame, text=f"Error: {res.get('error')}", text_color=DANGER).pack()
             return
             
         notes = res.get("notes", [])
         if not notes:
-            tk.Label(
-                self.scrollable_frame, text="No notes yet. Click + New Note to start.",
-                font=FONT_BODY, fg=FG_DIM, bg=BG_DEEP
+            ctk.CTkLabel(
+                self.scrollable_frame, text="No notes yet. Start by creating one!",
+                font=FONT_BODY, text_color=FG_DIM
             ).pack(pady=100)
             return
             
-        # Display as a grid of cards
-        cols = 3
         for i, note in enumerate(notes):
-            row = i // cols
-            col = i % cols
+            row = i // 3
+            col = i % 3
             self.render_note_card(note, row, col)
 
     def render_note_card(self, note, row, col):
-        card = tk.Frame(self.scrollable_frame, bg=BG_CARD, padx=15, pady=15, width=220, height=180)
-        card.grid(row=row, column=col, padx=10, pady=10)
-        card.pack_propagate(False)
+        card = ctk.CTkFrame(
+            self.scrollable_frame, fg_color=BG_CARD,
+            corner_radius=RADIUS, height=200
+        )
+        card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+        card.grid_propagate(False)
         
-        # Make the card clickable
-        card.bind("<Button-1>", lambda e, n=note: self.app.open_note(n))
-        
-        title_lbl = tk.Label(
+        # Clickable area
+        title_btn = ctk.CTkButton(
             card, text=note["filename"], font=FONT_BODY,
-            fg=FG_BRIGHT, bg=BG_CARD, wraplength=180, justify="left"
+            fg_color="transparent", text_color=FG_BRIGHT,
+            hover_color=BG_HOVER, anchor="nw",
+            command=lambda n=note: self.app.open_note(n)
         )
-        title_lbl.pack(anchor="nw")
-        title_lbl.bind("<Button-1>", lambda e, n=note: self.app.open_note(n))
+        title_btn.pack(fill="both", expand=True, padx=15, pady=(15, 0))
 
-        # Date/Subtitle style
-        tk.Label(
-            card, text="CaliNote File", font=FONT_SMALL,
-            fg=FG_DIM, bg=BG_CARD
-        ).pack(anchor="nw", pady=(5, 0))
+        # Bottom info in card
+        info_frame = ctk.CTkFrame(card, fg_color="transparent")
+        info_frame.pack(fill="x", side="bottom", padx=15, pady=15)
+        
+        ctk.CTkLabel(
+            info_frame, text="CaliNote File", font=FONT_SMALL,
+            text_color=FG_DIM
+        ).pack(side="left")
 
-        # Delete button hidden in card
-        del_btn = tk.Button(
-            card, text="×", font=("Arial", 14),
-            bg=BG_CARD, fg=FG_DIM, relief="flat",
-            activebackground=DANGER, activeforeground=FG_BRIGHT,
-            command=lambda n=note: self.on_delete(n),
-            cursor="hand2", bd=0
+        del_btn = ctk.CTkButton(
+            info_frame, text="Delete", font=FONT_SMALL,
+            fg_color="transparent", text_color=FG_DIM,
+            hover_color=DANGER, width=60, height=25,
+            command=lambda n=note: self.on_delete(n)
         )
-        del_btn.place(relx=1.0, rely=0.0, anchor="ne", x=5, y=-5)
+        del_btn.pack(side="right")
 
     def on_delete(self, note):
         if messagebox.askyesno("Delete", f"Delete {note['filename']} permanently?"):

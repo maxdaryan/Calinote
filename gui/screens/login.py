@@ -1,47 +1,62 @@
-import tkinter as tk
+import customtkinter as ctk
 from theme import *
 
-class LoginScreen(tk.Frame):
+class LoginScreen(ctk.CTkFrame):
     def __init__(self, parent, app):
-        super().__init__(parent, bg=BG_DEEP)
+        super().__init__(parent, fg_color=BG_DEEP)
         self.app = app
         
-        container = tk.Frame(self, bg=BG_DEEP)
-        container.place(relx=0.5, rely=0.5, anchor="center")
+        self.container = ctk.CTkFrame(self, fg_color="transparent")
+        self.container.place(relx=0.5, rely=0.6, anchor="center") # Start slightly lower
         
-        tk.Label(
-            container, text="CALINOTE",
-            font=FONT_TITLE, fg=ACCENT, bg=BG_DEEP
+        ctk.CTkLabel(
+            self.container, text="CALINOTE",
+            font=FONT_TITLE, text_color=ACCENT
+        ).pack(pady=(0, 10))
+        
+        ctk.CTkLabel(
+            self.container, text="Your thoughts, secured.",
+            font=FONT_BODY, text_color=FG_DIM
         ).pack(pady=(0, 40))
         
-        self.pass_entry = tk.Entry(
-            container, show="*", font=FONT_BODY,
-            bg=BG_CARD, fg=FG_BRIGHT, insertbackground=FG_BRIGHT,
-            relief="flat", width=30
+        self.pass_entry = ctk.CTkEntry(
+            self.container, show="*", font=FONT_BODY,
+            fg_color=BG_CARD, border_color=BORDER,
+            text_color=FG_BRIGHT, placeholder_text="Enter Password",
+            width=320, height=50, corner_radius=RADIUS
         )
-        self.pass_entry.pack(ipady=10, pady=10)
+        self.pass_entry.pack(pady=10)
         self.pass_entry.bind("<Return>", lambda e: self.on_unlock())
         self.pass_entry.focus_set()
         
-        unlock_btn = tk.Button(
-            container, text="UNLOCK", font=FONT_BUTTON,
-            bg=ACCENT, fg=FG_BRIGHT, activebackground=ACCENT,
-            activeforeground=FG_BRIGHT, relief="flat",
-            command=self.on_unlock, cursor="hand2",
-            padx=20, pady=10
+        self.unlock_btn = ctk.CTkButton(
+            self.container, text="Unlock Vault", font=FONT_BUTTON,
+            fg_color=ACCENT, text_color=BG_DEEP,
+            hover_color="#e5c100", corner_radius=RADIUS,
+            height=50, width=320,
+            command=self.on_unlock
         )
-        unlock_btn.pack(pady=20)
+        self.unlock_btn.pack(pady=20)
         
-        self.error_label = tk.Label(
-            container, text="", font=FONT_SMALL,
-            fg=DANGER, bg=BG_DEEP
+        self.error_label = ctk.CTkLabel(
+            self.container, text="", font=FONT_SMALL,
+            text_color=DANGER
         )
         self.error_label.pack()
+
+        # Start animation
+        self.animate_in()
+
+    def animate_in(self, target_rely=0.5, current_rely=0.6):
+        if current_rely > target_rely:
+            current_rely -= 0.005
+            self.container.place(relx=0.5, rely=current_rely, anchor="center")
+            self.after(10, lambda: self.animate_in(target_rely, current_rely))
 
     def on_unlock(self):
         password = self.pass_entry.get()
         if not password:
-            self.error_label.config(text="Please enter a password.")
+            self.error_label.configure(text="Please enter a password.")
             return
         
         self.app.show_notes_list(password)
